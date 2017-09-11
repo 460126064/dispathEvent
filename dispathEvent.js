@@ -31,25 +31,6 @@ likai.prototype = {
         if(window.addEventListener) {
             this.queue.forEach(function(item){
                 item.addEventListener(eventName,callback,capture);
-                //判断当前元素是否应注册过事件，
-                if(!item['evt' + eventName]) {
-                  if(eventName.indexOf('mouse') > -1) {
-                          //创建鼠标事件对象
-                          var evt = document.createEvent('MouseEvents');
-                          //初始化事件
-                          evt.MouseEvent(eventName,capture || false,false);
-                          //保存元素
-                          item['evt' + eventName] = evt;
-                          return;                                
-                  }
-                  //创建普通事件对象
-                  var evt = document.createEvent('HTMLEvents');
-                  //初始化事件
-                  evt.initEvent(eventName,capture || false,false);
-                  //保存元素
-                  item['evt' + eventName] = evt;                              
-                }
-
             })
         //IE独有事件
         }else if(window.attachEvent) {
@@ -81,10 +62,39 @@ likai.prototype = {
         return this;
     },
     //触发事件
-    fire:function(eventName) {
+    fire:function(eventName,options) {
+        options = options || {
+              bubble : false
+        }
         if(window.addEventListener) {
                 this.queue.forEach(function(item) {
-                        item.dispatchEvent(item['evt' + eventName])
+                    var evt = item['evt' + eventName],
+                        bubble = false;
+                        //判断当前元素是否应注册过事件，
+                        if(!evt) {
+                          if(eventName.indexOf('mouse') > -1) {
+                                  //创建鼠标事件对象
+                                  evt = document.createEvent('MouseEvents');
+                                  //初始化事件
+                                  evt.MouseEvent(eventName,capture || false,false);
+                                  //保存元素
+                                  item['evt' + eventName] = evt;
+                                  return;                                
+                          }
+                          //创建普通事件对象
+                           evt = document.createEvent('HTMLEvents');
+                          //初始化传参
+                          if(Object.prototype.toString.call(options).indexOf('Object') > -1) {
+                               for(var key in options) {
+                                key === 'bubble' ? bubble = options[key] : evt[key] = options[key]
+                            }                             
+                          }
+                          //初始化事件
+                          evt.initEvent(eventName,bubble || false,false);
+                          //保存元素
+                          item['evt' + eventName] = evt;                              
+                        }                    
+                        item.dispatchEvent(evt)
                 })
         }else if(window.attachEvent) {
                 this.queue.forEach(function(item) {
